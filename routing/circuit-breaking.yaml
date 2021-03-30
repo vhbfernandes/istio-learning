@@ -1,0 +1,16 @@
+# as described on the readme, circuit breaking are rules applied straight to de destination rule, 
+# which removes the overhead of the application to install and manage it's own packages and maintain specific rules for each target
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: destination-rule-name
+  namespace: your-namespace
+spec:
+  host: "your-app.your-namespace.svc.cluster.local"          # the targeted service
+  trafficPolicy:
+    outlierDetection: # Circuit Breakers -> for the circuit breaker to work this setting must be configured with at least one field. 
+    # usually default values are fine. All options are described here https://istio.io/latest/docs/reference/config/networking/destination-rule/#OutlierDetection
+      maxEjectionPercent: 100 # means you can eject 100% of the pods on the target service if they trigger the circuit breaker
+      consecutive5xxErrors: 2 # for X consecutive 5xx class errors ON THE SAME POD (in the interval defined below) it will be ejected of the service
+      interval: 10s # time to measure the consecutive errors
+      baseEjectionTime: 30s # the time of the first ejection, then it grows in an exponential backoff manner
