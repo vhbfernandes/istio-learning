@@ -1,3 +1,5 @@
+# these two rules together creates a canary, sending some percentual traffic to the new version of a service
+
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
@@ -15,8 +17,9 @@ spec:
     - destination:
         host: yourapp.yournamespace.svc.cluster.local
         subset: canary
-      weight: 5 # adds 5% of the traffic to the canary
+      weight: 5 # adds 5% of the traffic to the canary 
       #note that as we have not added any evaluation rule, traffic will be served at random using these weights
+      # IMPORTANT: all the weights added together MUST sum to 100 or the rule will fail to apply
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
