@@ -1,0 +1,46 @@
+# internal or dark releases are production releases that flow only for internal users, at first to measure production performance and catch a few bugs
+# this tend to be used on the first stages of a product release (followed by canaries), but can also be used to always flow beta users to some specific versions and do some proper beta-testing
+# mostly applications create some specific set of rules to try and target internal users, with istio it can be done fairy easy
+# IMPORTANT: the targeted header must be propagated across the whole cluster (or at least the involved services following the chain) in order for this to work
+
+kind: VirtualService
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: dark-release-vs-rule
+  namespace: your-namespace
+spec:
+  hosts:
+    - your-app.your-namespace.svc.cluster.local
+  http:
+    #this first rule matches x-user-type header to `beta` and sends it to the first subset.
+    #remember, rules are evaluated in order
+    - match:
+        - headers:
+            x-user-type:
+              exact: beta
+      route:
+        - destination:
+            host: your-app.your-namespace.svc.cluster.local
+            subset: beta
+    # this second rule is an `else` that catchees all that miss the first one and send to the stable subset
+    - route:
+        - destination:
+            host: your-app.your-namespace.svc.cluster.local
+            subset: stable
+---
+kind: DestinationRule
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: dark-release-destination-rule
+  namespace: your-namespace
+spec:
+  host: your-app.your-namespace.svc.cluster.local
+  subsets:
+    # creates a pair of subsets by checking the pods labels for version stable and beta, this names can be anything the creator desires
+    - name: stable
+      labels:
+        version: stable 
+    - name: beta
+      labels:
+        version: beta
+      
