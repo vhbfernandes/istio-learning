@@ -1,0 +1,37 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: virtual-service-name
+  namespace: your-namespace
+spec:
+  hosts:
+  - yourapp.yournamespace.svc.cluster.local #service DNS that should be listened and intercepted
+  http:
+  - route:
+    - destination:
+        host: yourapp.yournamespace.svc.cluster.local # targets the same service. you can use virtualservices to target different services under the same dns
+        subset: stable
+      weight: 95 # adds 95% weight on the stable version
+    - destination:
+        host: yourapp.yournamespace.svc.cluster.local
+        subset: canary
+      weight: 5 # adds 5% of the traffic to the canary
+      #note that as we have not added any evaluation rule, traffic will be served at random using these weights
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: destination-rule-name
+  namespace: your-namespace
+spec:
+  host: yourapp # the service name that becomes the `destination`
+  subsets:
+    #here it creates a subset named `stable` for pods labeled with `version: stable`
+  - name: stable
+    labels:
+      version: stable
+    #here it creates a subset named `canary` for pods labeled with `version: canary`
+  - name: canary
+    labels:
+      version: canary
+    #subset names and labels are not linked, you can call any of these anything you like
